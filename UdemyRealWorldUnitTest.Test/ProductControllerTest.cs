@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Moq;
 using System.Collections.Generic;
+using System.Formats.Asn1;
 using System.Linq;
 using System.Threading.Tasks;
 using UdemyRealWordUnitTest.Web.Controllers;
@@ -48,7 +50,7 @@ namespace RealWorldUnitTest.Test
 
             var productList = Assert.IsAssignableFrom<IEnumerable<Product>>(viewResult.Model);
 
-            Assert.Equal<int>(2,productList.Count());
+            Assert.Equal<int>(2, productList.Count());
         }
 
         [Fact]
@@ -90,6 +92,60 @@ namespace RealWorldUnitTest.Test
 
             Assert.Equal(product.Id, resultProduct.Id);
             Assert.Equal(product.Name, resultProduct.Name);
+        }
+
+        [Fact]
+        public async void Create_ActionExecutes_ReturnView()
+        {
+            var result = _controller.Create();
+
+            Assert.IsType<ViewResult>(result);
+        }
+
+        [Fact]
+        public async void CreatePOST_InValidModelState_ReturnView()
+        {
+            _controller.ModelState.AddModelError("Name", "Name Alanı Gerekli");
+
+            var result = await _controller.Create(_products.First());
+
+            var viewResult = Assert.IsType<ViewResult>(result);
+
+            Assert.IsType<Product>(viewResult.Model);
+        }
+
+        [Fact]
+        public async void CreatePOST_ValidModelState_ReturnRedirectToActionIndex()
+        {
+            var result = await _controller.Create(_products.First());
+
+            var redirect = Assert.IsType<RedirectToActionResult>(result);
+
+            Assert.Equal("Index", redirect.ActionName);
+        }
+
+        [Fact]
+        public async void CreatePOST_ValidModelState_CreateMethodExecute()
+        {
+            Product product = null;
+
+            _mockRepo.Setup(repo => repo.Create(It.IsAny<Product>())).Callback<Product>(x => product = x);
+
+            var result = await _controller.Create(_products.First());
+
+            _mockRepo.Verify(repo => repo.Create(It.IsAny<Product>()), Times.Once());
+
+            Assert.Equal(_products.First().Id, product.Id);
+        }
+
+        [Fact]
+        public async void CreatePOST_InValidModelState_NeverCreateExecute()
+        {
+            _controller.ModelState.AddModelError("Name", "");
+
+            var result = await _controller.Create(_products.First());
+
+            _mockRepo.Verify(repo => repo.Create(It.IsAny<Product>()), Times.Never());
         }
     }
 }
