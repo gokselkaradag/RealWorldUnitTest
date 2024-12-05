@@ -189,5 +189,52 @@ namespace RealWorldUnitTest.Test
 
             Assert.Equal(product.Id, resultProduct.Id);
         }
+
+        [Theory]
+        [InlineData(1)]
+        public void EditPOST_IdIsNotEqualProduct_ReturnNotFound(int productId)
+        {
+            var result = _controller.Edit(2, _products.First(x => x.Id == productId)); 
+
+            var redirect = Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        public void EditPOST_InValidModelState_ReturnView(int productId)
+        {
+            _controller.ModelState.AddModelError("Name", "");
+
+            var result = _controller.Edit(productId, _products.First(x => x.Id == productId));
+
+            var viewResult = Assert.IsType<ViewResult>(result);
+
+            Assert.IsType<Product>(viewResult.Model);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        public void EditPOST_ValidModelState_ReturnRedirectToAction(int productId)
+        {
+            var result = _controller.Edit(productId, _products.First(x => x.Id == productId));
+
+            var redirect = Assert.IsType<RedirectToActionResult>(result);
+
+            Assert.Equal("Index", redirect.ActionName);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        public void EditPOST_ValidModelState_UpdateMethodExecute(int productId)
+        {
+            var product = _products.First(x => x.Id == productId);
+
+            _mockRepo.Setup(repo => repo.Update(product));
+
+            _controller.Edit(productId, product);
+
+            _mockRepo.Verify(repo => repo.Update(It.IsAny<Product>()), Times.Once());
+        }
+
     }
 }
