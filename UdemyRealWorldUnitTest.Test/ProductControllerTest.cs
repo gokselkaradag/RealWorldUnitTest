@@ -147,5 +147,47 @@ namespace RealWorldUnitTest.Test
 
             _mockRepo.Verify(repo => repo.Create(It.IsAny<Product>()), Times.Never());
         }
+
+        [Fact]
+        public async void Edit_IdIsNull_ReturnRedirectToIndexAction()
+        {
+            var result = await _controller.Edit(null);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(result);
+
+            Assert.Equal("Index", redirect.ActionName);
+        }
+
+        [Theory]
+        [InlineData(3)]
+        public async void Edit_IdInValid_ReturnNotFound(int productId)
+        {
+            Product product = null;
+
+            _mockRepo.Setup(repo => repo.GetById(productId)).ReturnsAsync(product);
+
+            var result = await _controller.Edit(productId);
+
+            var redirect = Assert.IsType<NotFoundResult>(result);
+
+            Assert.Equal<int>(404, redirect.StatusCode);
+        }
+
+        [Theory]
+        [InlineData(2)]
+        public async void Edit_ActionExecutes_ReturnProduct(int productId)
+        {
+            var product = _products.First(x => x.Id == productId);
+
+            _mockRepo.Setup(repo => repo.GetById(productId)).ReturnsAsync(product);
+
+            var result = await _controller.Edit(productId);
+
+            var viewResult = Assert.IsType<ViewResult>(result);
+
+            var resultProduct = Assert.IsAssignableFrom<Product>(viewResult.Model);
+
+            Assert.Equal(product.Id, resultProduct.Id);
+        }
     }
 }
