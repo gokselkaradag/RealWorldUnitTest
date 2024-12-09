@@ -119,7 +119,35 @@ namespace UdemyRealWorldUnitTest.Test
             Assert.Equal("GetProduct", createdAtActionResult.ActionName);
         }
 
+        [Theory]
+        [InlineData(0)]
+        public async void DeleteProduct_IdInValid_ReturnNotFound(int productId)
+        {
+            Product product = null;
 
+            _mockRepo.Setup(x => x.GetById(productId)).ReturnsAsync(product);
+
+            var resultNotFound = await _controller.DeleteProduct(productId);
+
+            Assert.IsType<NotFoundResult>(resultNotFound.Result);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        public async void DeleteProduct_ActionExecute_ReturnNoContent(int productId)
+        {
+            var product = _products.First(x => x.Id == productId);
+
+            _mockRepo.Setup(x => x.Delete(product));
+
+            _mockRepo.Setup(x => x.GetById(productId)).ReturnsAsync(product);
+
+            var noContentResult = await _controller.DeleteProduct(productId);
+
+            _mockRepo.Verify(x => x.Delete(product), Times.Once);
+
+            Assert.IsType<NoContentResult>(noContentResult.Result);
+        }
 
     }
 }
